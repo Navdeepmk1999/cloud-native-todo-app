@@ -1,0 +1,53 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: global-alert-manager-configuration
+  namespace: monitoring
+  labels:
+    release: kube-prometheus
+spec:
+  receivers:
+    - name: slack-receiver
+      slackConfigs:
+        - channel: "#alerting"  # Replace with your Slack channel
+          sendResolved: true
+          iconEmoji: ":bell:"  # Optional emoji for alert notifications
+          text: |
+            <!channel> 
+            *Summary:* {{ .CommonAnnotations.summary }}
+            *Description:* {{ .CommonAnnotations.description }}
+            *Alert:* {{ .CommonLabels.alertname }}
+            *Severity:* {{ .CommonLabels.severity }}
+            *Namespace:* {{ .CommonLabels.namespace }}
+            *Pod:* {{ .CommonLabels.pod }}
+
+  route:
+    receiver: slack-receiver  # Default receiver for all alerts
+    groupBy: ["alertname", "severity"]  # Group alerts by these labels
+    groupWait: 30s  # Wait time before sending alerts
+    groupInterval: 1m  # Minimum interval between alert groups
+    repeatInterval: 1m  # Interval for repeating resolved alerts
+
+    routes:
+      # Include alerts with severity=warning (like KubePodNotReady)
+      - matchers:
+          - name: severity
+            value: warning
+            matchType: "="  # Match 'severity=warning'
+        receiver: slack-receiver
+      - matchers:
+          - name: alertname
+            value: KubePodNotReady
+            matchType: "="
+      - matchers:
+          - name: alertname
+            value: KubePodCrashLooping
+            matchType: "="      
+        receiver: slack-receiver
+      - matchers:
+          - name: severity
+            value: none
+            matchType: "!=" 
+        receiver: slack-receiver
+
+        

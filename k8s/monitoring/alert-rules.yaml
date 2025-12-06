@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-alert-rules
+  namespace: kube-system
+data:
+  alert-rules.yml: |
+    groups:
+      - name: example-alerts
+        rules:
+          - alert: HighPodFailures
+            expr: increase(kube_pod_container_status_restarts_total[5m]) > 2
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High number of pod restarts detected"
+              description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has restarted more than 2 times in the last 5 minutes."
